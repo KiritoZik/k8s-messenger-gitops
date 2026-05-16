@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate-users
+  namespace: messenger
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z postgres 5432; do
+                echo "Waiting for postgres..."; sleep 2;
+              done
+        - name: copy-migrations
+          image: mablinov2704/user-service:latest
+          command:
+            - sh
+            - -c
+            - "cp -r /migrations/* /shared/ || cp -r /app/migrations/* /shared/"
+          volumeMounts:
+            - name: shared-migrations
+              mountPath: /shared
+      containers:
+        - name: migrate-users
+          image: ghcr.io/kukymbr/goose-docker:latest
+          env:
+            - name: GOOSE_DRIVER
+              value: postgres
+            - name: GOOSE_DBSTRING
+              valueFrom:
+                secretKeyRef:
+                  name: messager-db-secret
+                  key: GOOSE_USER_DBSTRING
+            - name: GOOSE_MIGRATION_DIR
+              value: /migrations
+          volumeMounts:
+            - name: shared-migrations
+              mountPath: /migrations
+      volumes:
+        - name: shared-migrations
+          emptyDir: {}

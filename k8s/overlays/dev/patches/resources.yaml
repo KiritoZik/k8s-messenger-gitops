@@ -1,0 +1,18 @@
+# dev: сниженные лимиты для Minikube
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: messenger
+spec:
+  template:
+    spec:
+      containers:
+        - name: postgres
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
