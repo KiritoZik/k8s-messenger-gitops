@@ -131,7 +131,7 @@ $ mc ls --recursive local/pvc-7abf6282-a086-4dbc-a9f5-00338cdde2df/csi-fs/
 [2026-05-16 19:49:10]     0B  verify_checklist.txt
 ```
 
-### 8. nodeAffinity реализована в prod overlay ✅
+### 8. nodeAffinity реализована в prod overlay 
 
 Патч `k8s/overlays/prod/patches/affinity.yaml` задаёт:
 - `postgres`, `minio` → `required: workload=system`
@@ -146,10 +146,30 @@ kubectl label node minikube workload=system disk=fast
 kubectl describe pod -n messenger -l app=message-service | grep -A15 "Affinity"
 ```
 
-### 9. S3 CSI StorageClass (ch.ctrox.csi.s3-driver, mounter: s3fs) ✅
+### 9. S3 CSI StorageClass (ch.ctrox.csi.s3-driver, mounter: s3fs) 
 
 ```
 $ kubectl get storageclass csi-s3
 NAME     PROVISIONER              RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION
 csi-s3   ch.ctrox.csi.s3-driver   Delete          Immediate           false
 ```
+
+### 10. Argo CD — messager-dev (Synced / Healthy)
+
+```bash
+# Установка Argo CD
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml --server-side --force-conflicts
+
+# Применение Application
+kubectl apply -f argocd/application.yaml
+```
+
+```
+$ kubectl get applications -n argocd
+NAME           SYNC STATUS   HEALTH STATUS
+messager-dev   Synced        Healthy
+```
+
+Argo CD успешно синхронизировал `k8s/overlays/dev` из GitHub репозитория.
+Automated sync с `prune: true` и `selfHeal: true` активен.
